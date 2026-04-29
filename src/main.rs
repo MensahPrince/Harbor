@@ -1,24 +1,51 @@
 use iced::widget::{Column, button, column, text};
+use netstat2::*;
 
 #[derive(Default)]
-struct Counter {
-    value: i64,
+struct Harbor {
+    value: String,
 }
 
 #[derive(Clone, Copy)]
 enum Message {
-    Increment,
-    Decrement,
+    FetchPorts,
 }
 
-impl Counter {
+impl Harbor {
     fn update(&mut self, message: Message) {
         match message {
-            Message::Increment => {
-                self.value += 1;
+            Message::FetchPorts => {
+                self.fetch_ports();
             }
-            Message::Decrement => {
-                self.value -= 1;
+        }
+    }
+
+    fn fetch_ports(&mut self) {
+        let af_flags = AddressFamilyFlags::IPV4 | AddressFamilyFlags::IPV6;
+        let proto_flags = ProtocolFlags::TCP | ProtocolFlags::UDP;
+        let sockets_info = get_sockets_info(af_flags, proto_flags).unwrap_or_default();
+
+        self.value.clear();
+        for si in sockets_info {
+            match si.protocol_socket_info {
+                ProtocolSocketInfo::Tcp(tcp) => {
+                    self.value.push_str(&format!(
+                        "TCP: {}:{} -> {}:{} {:?} {:?}\n",
+                        tcp.local_addr,
+                        tcp.local_port,
+                        tcp.remote_addr,
+                        tcp.remote_port,
+                        si.associated_pids,
+                        tcp.state,
+                    ));
+                }
+
+                ProtocolSocketInfo::Udp(udp_si) => {
+                    self.value.push_str(&format!(
+                        "UDP {}:{} -> *:* {:?}\n",
+                        udp_si.local_addr, udp_si.local_port, si.associated_pids,
+                    ));
+                }
             }
         }
     }
@@ -28,26 +55,24 @@ impl Counter {
             column![
                 text("HARBOR v0.1").size(50),
                 text("Manage your system ports in one place"),
-                text("by Codemesh"),
+                text("by Codemesh <codemesh4@gmail.com>"),
             ],
             column![
-                button("+").on_press(Message::Increment),
-                text(self.value),
-                button("-").on_press(Message::Decrement),
+                text(&self.value),
+                button("Fetch Ports").on_press(Message::FetchPorts),
             ]
         ]
     }
 }
 
 fn main() -> iced::Result {
-    iced::run(Counter::update, Counter::view)
+    iced::run(Harbor::update, Harbor::view)
 }
 
 #[test]
-fn test_counter() {
-    let mut counter = Counter { value: 0 };
-    counter.update(Message::Increment);
-    counter.update(Message::Increment);
-    counter.update(Message::Decrement);
-    assert_eq!(counter.value, 1);
+fn test_port_fetch() {
+    let mut harbor = Harbor::default();
+    harbor.fetch_ports();
+    // Just verify we got some output if ports are open
+    assert!(!harbor.value.is_empty());
 }

@@ -2,6 +2,21 @@
 name = "Harbor"
 version = "0.1.0"
 edition = "2024"
+authors = ["Codemesh <codemesh4@gmail.com>"]
+license = "MIT"
+license-file = "LICENSE"
+repository = "https://github.com/MensahPrince/Harbor"
+categories = [
+    "development-tools::debugging",
+    "development-tools::profiling",
+    "network-programming",
+    "system-programming",
+]
+description = "Manage system ports in one place"
+readme = "README.md"
+homepage = "https://github.com/MensahPrince/Harbor"
+keywords = ["network", "port", "netstat", "debug", "tool"]
 
 [dependencies]
 iced = "0.14.0"
+netstat2 = "0.10"
